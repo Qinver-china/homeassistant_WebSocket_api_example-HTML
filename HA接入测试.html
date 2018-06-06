@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Home Assistant API链接测试</title>
+        <script src="http://code.jquery.com/jquery-2.1.4.min.js"></script>
+        <style>div {font-size: 8px;margin: 4px;}</style>
+        <script type="text/javascript">
+        hass();
+        setInterval(function(){hass()}, 5000); /*=刷新时间 =*/
+
+        function hass() {
+            $(document).ready(function () {
+                ws = new WebSocket('ws://192.168.1.10:8123/api/websocket'); /*=HA-api地址=*/
+                ws.addEventListener('open', function (event) {
+                    ws.send('{"type": "auth","api_password": "you_password"}'); /*=发送密码开始链接，没有密码删除此行=*/
+                    ws.send('{"id": 19,"type": "get_states"}')
+                });
+                ws.onmessage = function (event) {
+                    var txt = event.data; /*=返回的初始数据=*/
+                    
+                    obj = eval("(" + txt + ")"), json2 = "",json2x = "",txtx = "";
+                    yz = obj.type;  /*=反馈密码验证信息=*/
+                    var l1 = ""
+                    
+                    setTimeout(function () {hassyz()}, 1000);   /*=延时1秒更新密码验证结果=*/
+                    function hassyz() {
+                    if (yz == "auth_invalid") {
+                        l1 = "密码错误！"
+                    } else if (yz == "auth_ok") {
+                        l1 = "密码验证成功！"
+                    } else if (yz == "result") {
+                        l1 = "已获取到数据"
+                    } else {
+                        l1 = "正在链接..."
+                    };    
+                    $("#l1").html(l1)
+                    };
+                    
+                    for (var x in obj.result) {
+                        json2 += '"' + obj.result[x].entity_id + '": {' + '"name": "' + obj.result[x].attributes.friendly_name +
+                            '","state": "' + obj.result[x].state + '","unit": "' + obj.result[x].attributes.unit_of_measurement +
+                            '"},';
+                        txtx += '<div>' + JSON.stringify(obj.result[x]) + '</div></br>';
+                        json2x += '<div>"' + obj.result[x].entity_id + '": {' + '"name": "' + obj.result[x].attributes.friendly_name +
+                            '","state": "' + obj.result[x].state + '","unit": "' + obj.result[x].attributes.unit_of_measurement +
+                            '"}</div>';
+                    } /*=重新写json-重复数据=*/
+                    json3 = '{"qha": {' + json2 + '"over": "ok"}}'; /*=汇总重复数据成json=*/
+                    json4 = eval("(" + json3 + ")"); /*=json3转json格式=*/
+                    /*=====用entity_id匹配数据并显示======*/
+                    ha1 = json4.qha["sensor.temp_show"] ? json4.qha["sensor.temp_show"] : '没有此ID';
+                    h1 = ha1.name + ">>>" + ha1.state + ">>" + ha1.unit;
+                    ha2 = json4.qha["sensor.time_online"] ? json4.qha["sensor.time_online"] : '没有此ID';
+                    h2 = ha2.name + ">>>" + ha2.state + ">>" + ha2.unit;
+                    ha3 = json4.qha["sensor.m1_pm25"] ? json4.qha["sensor.m1_pm25"] : '没有此ID';
+                    h3 = ha3.name + ">>>" + ha3.state + ">>" + ha3.unit;
+                    
+                    setTimeout(function () {hassjg()}, 1000);   /*=延时1秒更新显示结果=*/
+                    function hassjg() {
+                    $("#m1").html(txt)
+                    $("#m1x").html(txtx)
+                    $("#m2").html(json2)
+                    $("#m2x").html(json2x)
+                    $("#m3").html(json3)
+                    $("#h1").html(h1)
+                    $("#h2").html(h2)
+                    $("#h3").html(h3)
+                    };
+
+                };
+            });
+        };
+        </script>
+    </head>
+    
+    <body>
+        <div>
+            <div>
+                <h1 style="font-size: 16px;background:rgb(102,102,102,0.4)">Homeassistant API链接测试 BY：倾微Qinver</h1>
+                <a href="https://developers.home-assistant.io/docs/en/external_api_rest.html">官方API文档</a>
+            </div>
+            <div>
+                <h1 id="l1" style="font-size: 14px;background:rgb(102,12,102,0.4)">无法链接到Homeassistant后台服务器，请检查API地址！</h1>
+            </div>
+            <div style="background-color: rgba(70,70,130,0.2);border:2px solid #a51e60">
+                <div style="font-size: 16px;color:#a51e60">HA 实体ID信息</div>
+                <div id="h1" style="font-size: 12px;color:#0b84c8"></div>
+                <div id="h2" style="font-size: 12px;color:#0b84c8"></div>
+                <div id="h3" style="font-size: 12px;color:#0b84c8"></div>
+                <div id="h4" style="font-size: 12px;color:#0b84c8"></div>
+                <div id="h5" style="font-size: 12px;color:#0b84c8"></div>
+            </div>
+            <div style="border:2px solid #1d67df"><div style="font-size: 16px;color:#1d67df">-★★ 3：json3数据</div><div id="m3"></div></div>
+            <div style="border:2px solid #ff00ff"><div style="font-size: 16px;color:#ff00ff">-★★ 2：json2数据：可视化</div><div id="m2x"></div></div>
+            <div style="border:2px solid #599b19"><div style="font-size: 16px;color:#599b19">-★★ 1：初始数据：可视化</div><div id="m1x"></div></div>
+            <div style="border:2px solid #ff00ff"><div style="font-size: 16px;color:#ff00ff">-★★ 2：json2数据</div><div id="m2"></div></div>
+            <div style="border:2px solid #599b19"><div style="font-size: 16px;color:#599b19">-★★ 1：初始数据</div><div id="m1"></div></div>
+        </div>
+    </body>
+
+</html>
